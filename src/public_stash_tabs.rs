@@ -1,4 +1,3 @@
-extern crate serde;
 extern crate serde_repr;
 
 use serde::Deserialize;
@@ -40,7 +39,7 @@ pub struct Item {
     typeLine: String,
     identified: bool,
     corrupted: Option<bool>,
-    requirements: Vec<ItemRequirements>, // Check into 25494418-26606951-25417312-25066282-26588786 stash 400
+    requirements: Option<Vec<ItemRequirements>>, // Check into 25494418-26606951-25417312-25066282-26588786 stash 400
     properties: Option<Vec<ItemLineContent>>,
     talismanTier: Option<u16>,
     utilityMods: Option<Vec<String>>,
@@ -69,6 +68,11 @@ struct Socket {
     group: u16,
     attr: StatAttribute,
     sColour: SColour
+}
+
+#[derive(Deserialize, Debug)]
+struct ItemRequirements {
+
 }
 
 #[derive(Deserialize, Debug)]
@@ -121,14 +125,15 @@ enum FrameType {
     UNKNOWN = 5,
     UNKNOWN2 = 6,
     UNKNOWN3 = 7,
-    UNKOWNN4 = 8
+    UNKNOWN4 = 8,
+    UNKNOWN5 = 9
 }
 
 // https://www.pathofexile.com/forum/view-forum/674
 #[derive(Deserialize, Debug)]
 struct ItemExtendedData {
     category: String,
-    subcategories: Vec<String>,
+    subcategories: Option<Vec<String>>,
     prefixes: Option<u16>,
     suffixes: Option<u16>
 }

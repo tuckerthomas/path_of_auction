@@ -1,49 +1,89 @@
-extern crate serde;
-extern crate serde_json;
+extern crate hyper;
+
+use hyper::Client;
+use futures_util::try_stream::TryStreamExt;
 
 mod public_stash_tabs;
+use public_stash_tabs::PublicStashTabRequest;
 
-fn main() -> Result<(), ParseError> {
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+//type Result<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
+#[tokio::main]
+async fn main() -> Result<()> {
     // Last ID left on 25494418-26606951-25417312-25066282-26588786
-    let public_stash_tabs_api = "http://api.pathofexile.com/public-stash-tabs";
+    let inital_id = "482693335-499240894-471409853-539142114-512304116".to_string();
+    
 
-    let body = reqwest::get(public_stash_tabs_api)?.text()?;
+    let now = std::time::Instant::now();
+    let pub_stash_tab = get_stash_tabs(inital_id).await?;
+    println!("Full Deserialize in {}ms", now.elapsed().as_millis());
 
+    /*
     println!("Got first request!");
-
-    //let mut error = body.clone();
-    //error.truncate(83178);
-    //println!("Error point= '{:?}'", error);
-
-    let stash_tabs_list: public_stash_tabs::PublicStashTabRequest = serde_json::from_str(&body)?;
-    //println!("body = {:?}", stash_tabs_list);
 
     let mut done = false;
 
-    let two_seconds = std::time::Duration::from_secs(2);
-    let mut public_stash_tabs_api_next_id = format!("{}?id={}", public_stash_tabs_api, stash_tabs_list.next_change_id);
+    let half_second = std::time::Duration::from_millis(500);
+    */
 
+    /*
     while !done {
-        std::thread::sleep(two_seconds);
-        
-        let body = reqwest::get(&public_stash_tabs_api_next_id)?.text()?;
-        let new_stash_tabs_list: public_stash_tabs::PublicStashTabRequest = serde_json::from_str(&body)?;
-        println!("Got new request!, ID={}", new_stash_tabs_list.next_change_id);
-        public_stash_tabs_api_next_id = format!("{}?id={}", public_stash_tabs_api, new_stash_tabs_list.next_change_id);
+        std::thread::sleep(half_second);
+        let mut now = std::time::Instant::now();
+        // Insert Get Request
+        println!("Response in {}ms", now.elapsed().as_millis());
+        now = std::time::Instant::now();
+
+        println!("Body len: {}", body.len());
+
+        let new_stash_tabs_list: public_stash_tabs::PublicStashTabRequest =
+            serde_json::from_str(&body)?;
+        println!("Deserialize in {}ms", now.elapsed().as_millis());
+
+        println!(
+            "Got new request!, ID={}", new_stash_tabs_list.next_change_id);
+    };
+    */
+    Ok(())
+}
+
+async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest> {
+    let public_stash_tabs_api = "http://api.pathofexile.com/public-stash-tabs".to_string();
+
+    let mut concat_pub_stash_tab_api = "".to_string();
+    if next_id.is_empty() {
+        concat_pub_stash_tab_api = public_stash_tabs_api
+    } else {
+        concat_pub_stash_tab_api = format!("{}?id={}", public_stash_tabs_api, next_id)
     }
 
-    Ok(())
+    let public_stash_tab_api_full = concat_pub_stash_tab_api.parse().unwrap();
+
+    let client = Client::new();
+
+    let mut now = std::time::Instant::now();
+    let res = client.get(public_stash_tab_api_full).await?;
+    println!("Response in {}ms", now.elapsed().as_millis());
+
+    now = std::time::Instant::now();
+    let body = res.into_body().try_concat().await?;
+    println!("Deserialize in {}ms", now.elapsed().as_millis());
+
+    let pub_stash_tab = serde_json::from_slice(&body)?;
+
+    Ok(pub_stash_tab)
 }
 
 // Multiple Error Type Handling
 enum ParseError {
-    ReqwestError(reqwest::Error),
-    SerdeError(serde_json::Error)
+    SerdeError(serde_json::Error),
+    HyperError(hyper::Error),
 }
 
-impl From<reqwest::Error> for ParseError {
-    fn from(error: reqwest::Error) -> Self {
-        ParseError::ReqwestError(error)
+impl From<hyper::Error> for ParseError {
+    fn from(error: hyper::Error) -> Self {
+        ParseError::HyperError(error)
     }
 }
 
@@ -56,17 +96,17 @@ impl From<serde_json::Error> for ParseError {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            ParseError::ReqwestError(ref err) => write!(f, "Reqwest Error: {}", err),
-            ParseError::SerdeError(ref err) => write!(f, "Serde Error: {}", err)
-        } 
+            ParseError::SerdeError(ref err) => write!(f, "Serde Error: {}", err),
+            ParseError::HyperError(ref err) => write!(f, "Hyper Error: {}", err),
+        }
     }
 }
 
 impl std::fmt::Debug for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            ParseError::ReqwestError(ref err) => write!(f, "Reqwest Error: {}", err),
-            ParseError::SerdeError(ref err) => write!(f, "Serde Error: {}", err)
+            ParseError::SerdeError(ref err) => write!(f, "Serde Error: {}", err),
+            ParseError::HyperError(ref err) => write!(f, "Hyper Error: {}", err),
         }
     }
 }
