@@ -8,47 +8,34 @@ use public_stash_tabs::PublicStashTabRequest;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-//type Result<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[tokio::main]
 async fn main() -> Result<()> {
+    // API Stats https://poe.watch/stats?type=time
+    // START OF BLIGHT: 475841770-492541661-464580457-531662984-505125106
     // Last ID left on 25494418-26606951-25417312-25066282-26588786
-    let inital_id = "482693335-499240894-471409853-539142114-512304116".to_string();
-    
+    let inital_id = "485344165-502063555-473971962-542193509-515118059".to_string();
 
-    let now = std::time::Instant::now();
     let pub_stash_tab = get_stash_tabs(inital_id).await?;
-    println!("Full Deserialize in {}ms", now.elapsed().as_millis());
 
-    /*
     println!("Got first request!");
 
     let mut done = false;
 
-    let half_second = std::time::Duration::from_millis(500);
-    */
+    //let half_second = std::time::Duration::from_millis(500);
 
-    /*
-    while !done {
-        std::thread::sleep(half_second);
-        let mut now = std::time::Instant::now();
-        // Insert Get Request
-        println!("Response in {}ms", now.elapsed().as_millis());
-        now = std::time::Instant::now();
+    let mut next_change_id = pub_stash_tab.next_change_id.clone();
 
-        println!("Body len: {}", body.len());
-
-        let new_stash_tabs_list: public_stash_tabs::PublicStashTabRequest =
-            serde_json::from_str(&body)?;
-        println!("Deserialize in {}ms", now.elapsed().as_millis());
-
-        println!(
-            "Got new request!, ID={}", new_stash_tabs_list.next_change_id);
+    while !done {    
+        let pub_stash_tab = get_stash_tabs(next_change_id).await?;
+        next_change_id = pub_stash_tab.next_change_id.clone();
     };
-    */
+
     Ok(())
 }
 
 async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest> {
+    println!("Getting ID: {}", next_id);
+
     let public_stash_tabs_api = "http://api.pathofexile.com/public-stash-tabs".to_string();
 
     let mut concat_pub_stash_tab_api = "".to_string();
@@ -62,6 +49,7 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest> {
 
     let client = Client::new();
 
+    let full_req = std::time::Instant::now();
     let mut now = std::time::Instant::now();
     let res = client.get(public_stash_tab_api_full).await?;
     println!("Response in {}ms", now.elapsed().as_millis());
@@ -69,8 +57,11 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest> {
     now = std::time::Instant::now();
     let body = res.into_body().try_concat().await?;
     println!("Deserialize in {}ms", now.elapsed().as_millis());
+    println!("Full Request in {}ms", full_req.elapsed().as_millis());
 
-    let pub_stash_tab = serde_json::from_slice(&body)?;
+    let pub_stash_tab: PublicStashTabRequest = serde_json::from_slice(&body)?;
+
+    println!("Got stash tab, ID={}", next_id);
 
     Ok(pub_stash_tab)
 }
