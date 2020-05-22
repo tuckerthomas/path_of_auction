@@ -5,7 +5,7 @@ use serde_repr::Deserialize_repr;
 
 #[derive(Deserialize, Debug)]
 pub struct PublicStashTabRequest {
-    pub next_change_id: String,
+    pub next_change_id: Option<String>,
     stashes: Option<Vec<StashTab>>
 }
 
@@ -17,7 +17,7 @@ pub struct StashTab {
     account_name: Option<String>,
     last_character_name: Option<String>,
     stash: Option<String>,
-    stash_type: Option<String>,
+    stash_type: String,
     items: Option<Vec<Item>>,
     league: Option<String>
 }
@@ -110,9 +110,11 @@ enum FrameType {
 
 // https://www.pathofexile.com/forum/view-forum/674
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 struct ItemExtendedData {
     category: String,
     subcategories: Option<Vec<String>>,
     prefixes: Option<u16>,
-    suffixes: Option<u16>
+    suffixes: Option<u16>,
+    base_type: Option<String>
 }
