@@ -8,8 +8,6 @@ use public_stash_tabs::PublicStashTabRequest;
 use std::error::Error;
 use std::convert::TryInto;
 
-//type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // API Stats https://poe.watch/stats?type=time
