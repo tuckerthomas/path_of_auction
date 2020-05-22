@@ -54,17 +54,19 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dy
     // Create client for http request
     let client = Client::new();
     let res = client.get(public_stash_tab_api_full).await?;
-    let body = hyper::body::aggregate(res).await?;
     println!("Response in {}ms", now.elapsed().as_millis());
 
     // Reset now
     now = std::time::Instant::now();
 
-    // Data can be kinda big. Use a buffered reader.
-    let buf_body = std::io::BufReader::new(body.reader());
+    let body = hyper::body::to_bytes(res).await?;
+    println!("Byte Conversion in {}ms", now.elapsed().as_millis());
+
+    // Reset now
+    now = std::time::Instant::now();
 
     // Deserialize request
-    let pub_stash_tab = serde_json::from_reader(buf_body)?;
+    let pub_stash_tab = serde_json::from_reader(body.reader())?;
     println!("Deserialize in {}ms", now.elapsed().as_millis());
     println!("Full Request in {}ms", full_req.elapsed().as_millis());
 
