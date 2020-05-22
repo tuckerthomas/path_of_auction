@@ -37,6 +37,7 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dy
     // Setup URI
     let public_stash_tabs_api = "http://api.pathofexile.com/public-stash-tabs".to_string();
 
+    // TODO: fix this nonsense
     let mut concat_pub_stash_tab_api = "".to_string();
     if next_id.is_empty() {
         println!("Caught up!");
@@ -70,6 +71,7 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dy
     println!("Full Request in {}ms", full_req.elapsed().as_millis());
 
     // Check to see if passed rate-limiting
+    // TODO: Change to dynamic xratelimit header read
     if full_req.elapsed().as_millis() < 525 {
         let sleep_time = ((525 - full_req.elapsed().as_millis())).try_into().unwrap();
         println!("Acquired Data too quickly, sleeping for {}ms", sleep_time);
