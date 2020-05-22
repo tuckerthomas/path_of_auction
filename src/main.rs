@@ -22,23 +22,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("Got first request!");
 
-    let mut done = false;
-
-    //let half_second = std::time::Duration::from_millis(500);
-
     let mut next_change_id = pub_stash_tab.next_change_id.unwrap().clone();
 
-    while !done {    
+    // Acquire next stash tab
+    loop {    
         let pub_stash_tab = get_stash_tabs(next_change_id).await?;
         next_change_id = pub_stash_tab.next_change_id.unwrap().clone();
-    };
-
-    Ok(())
+    }
 }
 
 async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dyn Error>> {
     println!("Getting ID: {}", next_id);
 
+    // Setup URI
     let public_stash_tabs_api = "http://api.pathofexile.com/public-stash-tabs".to_string();
 
     let mut concat_pub_stash_tab_api = "".to_string();
@@ -52,30 +48,35 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dy
 
     let public_stash_tab_api_full = concat_pub_stash_tab_api.parse().unwrap();
 
-    let client = Client::new();
-
+    // Setup timers for diagnostics
     let full_req = std::time::Instant::now();
     let mut now = std::time::Instant::now();
-    let res = client.get(public_stash_tab_api_full).await?;
 
-    now = std::time::Instant::now();
+    // Create client for http request
+    let client = Client::new();
+    let res = client.get(public_stash_tab_api_full).await?;
     let body = hyper::body::aggregate(res).await?;
     println!("Response in {}ms", now.elapsed().as_millis());
+
+    // Reset now
+    now = std::time::Instant::now();
 
     // Data can be kinda big. Use a buffered reader.
     let buf_body = std::io::BufReader::new(body.reader());
 
+    // Deserialize request
     let pub_stash_tab = serde_json::from_reader(buf_body)?;
     println!("Deserialize in {}ms", now.elapsed().as_millis());
     println!("Full Request in {}ms", full_req.elapsed().as_millis());
 
+    // Check to see if passed rate-limiting
     if full_req.elapsed().as_millis() < 525 {
         let sleep_time = ((525 - full_req.elapsed().as_millis())).try_into().unwrap();
         println!("Acquired Data too quickly, sleeping for {}ms", sleep_time);
         std::thread::sleep(std::time::Duration::from_millis(sleep_time));
     }
 
-    println!("Got stash tab, ID={}", next_id);
+    println!("Got stash tab, ID={}\n", next_id);
 
     Ok(pub_stash_tab)
 }
