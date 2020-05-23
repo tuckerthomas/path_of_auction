@@ -1,3 +1,6 @@
 /target
 **/*.rs.bk
 .vscode
+
+# Prevent secret sharing
+.env
