@@ -1,4 +1,4 @@
-extern crate serde_repr;
+use serde_with::skip_serializing_none;
 
 use serde::Deserialize;
 use serde_repr::Deserialize_repr;
@@ -9,77 +9,72 @@ pub struct PublicStashTabRequest {
     stashes: Option<Vec<StashTab>>
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Default, Deserialize, Debug)]
+#[serde(default, rename_all = "camelCase")]
 pub struct StashTab {
-    id: String,
-    public: bool,
     account_name: Option<String>,
-    last_character_name: Option<String>,
-    stash: Option<String>,
-    stash_type: String,
+    id: String,   
     items: Option<Vec<Item>>,
-    league: Option<String>
+    last_character_name: Option<String>,
+    league: Option<String>,
+    public: bool,
+    stash_type: String,
+    stash: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[skip_serializing_none]
+#[derive(Default, Deserialize, Debug)]
+#[serde(default, rename_all = "camelCase")]
 pub struct Item {
-    verified: bool,
-    w: u16,
-    h: u16,
-    ilvl: u16,
-    icon: String,
-    league: String,
-    id: String,
-    name: String,
-    type_line: String,
-    identified: bool,
-    extended: ItemExtendedData,
-    frame_type: FrameType,
-    x: Option<u16>,
-    y: Option<u16>,
-    note: Option<String>,
-    elder: Option<bool>,
-    shaper: Option<bool>,
-    fractured: Option<bool>,
-    dubplicated: Option<bool>,
-    sockets: Option<Vec<Socket>>,
-    support: Option<bool>,
-    corrupted: Option<bool>,
-    requirements: Option<Vec<ItemRequirements>>,
-    properties: Option<Vec<ItemRequirements>>,
+    abyss_jewel: Option<bool>,
     additional_properties: Option<Vec<ItemRequirements>>,
-    next_level_requirements: Option<Vec<ItemRequirements>>,
-    talisman_tier: Option<u16>,
-    utility_mods: Option<Vec<String>>,
-    implicit_mods: Option<Vec<String>>,
-    explicit_mods: Option<Vec<String>>,
-    crafted_mods: Option<Vec<String>>,
+    art_file_name: Option<String>,
+    category: String,
+    corrupted: Option<bool>,
     cosmetic_mods: Option<Vec<String>>,
-    enchant_mods: Option<Vec<String>>,
-    fractured_mods: Option<Vec<String>>,
-    flavour_text: Option<Vec<String>>,
+    crafted_mods: Option<Vec<String>>,
     descr_text: Option<String>,
-    sec_descr_text: Option<String>,
-    prophecy_diff_text: Option<String>,
-    prophecy_text: Option<String>,
+    dubplicated: Option<bool>,
+    elder: Option<bool>,
+    enchant_mods: Option<Vec<String>>,
+    explicit_mods: Option<Vec<String>>,
+    extended: ItemExtendedData,
+    flavour_text: Option<Vec<String>>,
+    fractured_mods: Option<Vec<String>>,
+    fractured: Option<bool>,
+    frame_type: FrameType,
+    h: u16,
+    icon: String,
+    id: String,
+    identified: bool,
+    ilvl: u16,
+    implicit_mods: Option<Vec<String>>,
+    influences: Option<Influence>,
     inventory_id: Option<String>,
     is_relic: Option<bool>,
-    socketed_items: Option<Vec<Item>>,
-    socket: Option<u16>,
-    stack_size: Option<u16>
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct ItemRequirements {
+    league: String,
+    locked_to_character: Option<bool>,
+    max_stack_size: Option<u16>,
     name: String,
-    values: Vec<ItemLineContentValue>,
-    display_mode: u16,
-    #[serde(alias = "type")]
-    prop_type: Option<u16>,
-    progress: Option<f32>
+    next_level_requirements: Option<Vec<ItemRequirements>>,
+    note: Option<String>,
+    properties: Option<Vec<ItemRequirements>>,
+    prophecy_diff_text: Option<String>,
+    prophecy_text: Option<String>,
+    requirements: Option<Vec<ItemRequirements>>,
+    sec_descr_text: Option<String>,
+    shaper: Option<bool>,
+    socketed_items: Option<Vec<Item>>,
+    sockets: Option<Vec<Socket>>,
+    stack_size: Option<u16>,
+    support: Option<bool>,
+    talisman_tier: Option<u16>,
+    type_line: String,
+    utility_mods: Option<Vec<String>>,
+    verified: bool,
+    w: u16,
+    x: u16,
+    y: u16,
 }
 
 #[derive(Deserialize, Debug)]
@@ -88,6 +83,28 @@ struct Socket {
     group: u16,
     attr: String,
     s_colour: String
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct Influence {
+    shaper: Option<bool>,
+    elder: Option<bool>,
+    crusader: Option<bool>,
+    redeemer: Option<bool>,
+    hunter: Option<bool>,
+    warlord: Option<bool>,
+}
+
+#[derive(Default, Deserialize, Debug)]
+#[serde(default, rename_all = "camelCase")]
+struct ItemRequirements {
+    name: String,
+    values: Vec<ItemLineContentValue>,
+    display_mode: u16,
+    #[serde(alias = "type")]
+    prop_type: Option<u16>,
+    progress: Option<f32>
 }
 
 #[derive(Deserialize, Debug)]
@@ -108,9 +125,15 @@ enum FrameType {
     Relic = 9
 }
 
+impl Default for FrameType {
+    fn default() -> Self {
+        FrameType::Normal
+    }
+}
+
 // https://www.pathofexile.com/forum/view-forum/674
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[derive(Default, Deserialize, Debug)]
+#[serde(default, rename_all = "camelCase")]
 struct ItemExtendedData {
     category: String,
     subcategories: Option<Vec<String>>,
