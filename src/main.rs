@@ -94,7 +94,7 @@ fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
     let account = match lookup_account(conn, stash_tab.account_name.clone().unwrap().as_str()) {
         Ok(mut account) => {
             // Update last character
-            account.last_character = stash_tab.last_character_name.unwrap();
+            account.last_character = stash_tab.last_character_name.clone().unwrap();
             account = match update_account(conn, account.clone()) {
                 Err(e) => {
                     eprintln!("Could not update account {}", e);
@@ -105,11 +105,25 @@ fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
             account
         },
         Err(e) => {
-            eprintln!("Account didn't exist {}", e);
-            create_account(conn, stash_tab.account_name.clone().unwrap().as_str(), stash_tab.last_character_name.unwrap().clone().as_str())
+            // Account didnt exist
+            create_account(conn, stash_tab.account_name.clone().unwrap().as_str(), stash_tab.last_character_name.clone().unwrap().as_str())
         }
     };
     
     // Insert stash
+    let stash = match upsert_stash(conn, account.id, stash_tab.clone()) {
+        Ok(stash) => stash, 
+        Err(e) => { 
+            eprintln!("Could not update stash {}", e);
+            stash_tab.clone().convertToTableStashTab(account.id)
+        }
+    };
+
     // insert items
+    for item in stash_tab.items.unwrap() {
+        update_item(conn, stash.id.clone(), item);
+        //println!("Added Item!");
+    }
+
+    println!("Finished Stash");
 }

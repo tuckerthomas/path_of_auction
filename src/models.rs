@@ -17,7 +17,7 @@ pub struct NewAccount<'a> {
     pub last_character: &'a str,
 }
 
-#[derive(Queryable, Associations, Insertable)]
+#[derive(Clone, Queryable, Associations, Insertable, AsChangeset)]
 #[belongs_to(Account)]
 #[table_name = "stash_tabs"]
 pub struct TableStashTab {
@@ -29,7 +29,7 @@ pub struct TableStashTab {
     pub league: Option<String>
 }
 
-#[derive(Queryable, Associations, Insertable)]
+#[derive(Clone, Queryable, Associations, Insertable, AsChangeset)]
 #[belongs_to(TableStashTab, foreign_key = "stash_tab_id")]
 #[table_name = "items"]
 pub struct TableItem {

@@ -51,27 +51,32 @@ pub fn update_account(conn: &PgConnection, account: Account) -> Result<Account, 
 use self::models::TableStashTab;
 use self::public_stash_tabs::StashTab;
 
-pub fn update_stash(conn: &PgConnection, account_id: i32, stash_tab: StashTab) -> TableStashTab {
-    use schema::stash_tabs;
+pub fn upsert_stash(conn: &PgConnection, new_account_id: i32, stash_tab: StashTab) -> Result<TableStashTab, diesel::result::Error> {
+    use schema::stash_tabs::dsl::*;
 
-    let new_stash_tab = stash_tab.convertToTableStashTab(account_id);
+    let new_stash_tab = stash_tab.convertToTableStashTab(new_account_id);
 
-    diesel::insert_into(stash_tabs::table)
-        .values(new_stash_tab)
-        .get_result(conn)
-        .expect("Could not create new stash tab")
+    diesel::insert_into(stash_tabs)
+        .values(new_stash_tab.clone())
+        .on_conflict(id)
+        .do_update()
+        .set(new_stash_tab)
+        .get_result::<TableStashTab>(conn)
 }
 
 use self::models::TableItem;
 use self::public_stash_tabs::Item;
 
-pub fn update_item(conn: &PgConnection, stash_tab_id: String, item: Item) -> TableItem {
-    use schema::items;
+pub fn update_item(conn: &PgConnection, new_stash_tab_id: String, item: Item) -> TableItem {
+    use schema::items::dsl::*;
 
-    let new_item = item.convertToTableItem(stash_tab_id);
+    let new_item = item.convertToTableItem(new_stash_tab_id);
 
-    diesel::insert_into(items::table)
-        .values(new_item)
+    diesel::insert_into(items)
+        .values(new_item.clone())
+        .on_conflict(id)
+        .do_update()
+        .set(new_item)
         .get_result(conn)
         .expect("Could not create new item")
 }

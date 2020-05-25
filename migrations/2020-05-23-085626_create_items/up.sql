@@ -1,10 +1,10 @@
 create type item_line_content_value as (
-    name varchar, 
+    name text, 
     val int4
 );
 
 create type item_requirement AS (
-    name varchar,
+    name text,
     values item_line_content_value[],
     display_mode int4,
     prop_type int4,
@@ -12,11 +12,11 @@ create type item_requirement AS (
 );
 
 create type item_extended_data as (
-    category varchar,
+    category text,
     subcategories text[],
     prefixes int4,
     suffixes int4,
-    base_type varchar
+    base_type text
 );
 
 create type frame_type as enum (
@@ -34,8 +34,8 @@ create type frame_type as enum (
 
 create type socket_type as (
     s_group int4,
-    attr varchar,
-    s_colour varchar
+    attr text,
+    s_colour text
 );
 
 create type influence_type as (
@@ -50,12 +50,12 @@ create type influence_type as (
 create table items (
     abyss_jewel bool,
     additional_properties item_requirement[],
-    art_file_name varchar,
-    category varchar not null,
+    art_file_name text,
+    category text not null,
     corrupted bool,
     cosmetic_mods text[],
     crafted_mods text[],
-    descr_text varchar,
+    descr_text text,
     dubplicated bool,
     elder bool,
     enchant_mods text[],
@@ -66,32 +66,32 @@ create table items (
     fractured_mods text[],
     frame_type frame_type not null,
     h int4 not null,
-    icon varchar not null,
-    id varchar primary key,
+    icon text not null,
+    id text primary key,
     identified bool not null,
     ilvl int4 not null,
     implicit_mods text[],
     influences influence_type,
-    inventory_id varchar,
+    inventory_id text,
     is_relic bool,
-    league varchar not null,
+    league text not null,
     locked_to_character bool,
     max_stack_size int4,
-    name varchar not null,
+    name text not null,
     next_level_requirements item_requirement[],
-    note varchar,
+    note text,
     properties item_requirement[],
-    prophecy_diff_text varchar,
-    prophecy_text varchar,
+    prophecy_diff_text text,
+    prophecy_text text,
     requirements item_requirement[],
-    sec_descr_text varchar,
+    sec_descr_text text,
     shaper bool,
     sockets socket_type[],
     stack_size int4,  
-    stash_tab_id varchar references stash_tabs(id) not null,
+    stash_tab_id text references stash_tabs(id) not null,
     support bool,
     talisman_tier int4,
-    type_line varchar not null,
+    type_line text not null,
     utility_mods text[],
     verified bool not null,
     w int4 not null,

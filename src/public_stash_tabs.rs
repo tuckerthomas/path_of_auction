@@ -355,7 +355,6 @@ impl FromSql<FrameTypeType, Pg> for FrameType {
 #[postgres(type_name = "item_extended_data")]
 pub struct ItemExtendedDataType;
 
-// https://www.pathofexile.com/forum/view-forum/674
 #[derive(Default, Deserialize, Debug, Clone, FromSqlRow, PartialEq, AsExpression)]
 #[serde(default, rename_all = "camelCase")]
 #[sql_type = "ItemExtendedDataType"]
