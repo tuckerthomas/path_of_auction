@@ -5,17 +5,7 @@ table! {
     accounts (id) {
         id -> Int4,
         name -> Varchar,
-    }
-}
-
-table! {
-    use diesel::sql_types::*;
-    use use crate::public_stash_tabs::*;
-
-    characters (id) {
-        id -> Int4,
-        account_id -> Int4,
-        name -> Varchar,
+        last_character -> Varchar,
     }
 }
 
@@ -80,19 +70,9 @@ table! {
     use diesel::sql_types::*;
     use use crate::public_stash_tabs::*;
 
-    stash_lists (id) {
-        id -> Int4,
-        character_id -> Int4,
-    }
-}
-
-table! {
-    use diesel::sql_types::*;
-    use use crate::public_stash_tabs::*;
-
     stash_tabs (id) {
         id -> Varchar,
-        stash_list_id -> Int4,
+        account_id -> Int4,
         public -> Bool,
         stash -> Nullable<Varchar>,
         stash_type -> Varchar,
@@ -100,15 +80,11 @@ table! {
     }
 }
 
-joinable!(characters -> accounts (account_id));
 joinable!(items -> stash_tabs (stash_tab_id));
-joinable!(stash_lists -> characters (character_id));
-joinable!(stash_tabs -> stash_lists (stash_list_id));
+joinable!(stash_tabs -> accounts (account_id));
 
 allow_tables_to_appear_in_same_query!(
     accounts,
-    characters,
     items,
-    stash_lists,
     stash_tabs,
 );

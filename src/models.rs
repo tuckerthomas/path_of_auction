@@ -3,52 +3,26 @@ use crate::public_stash_tabs::*;
 
 use diesel::*;
 
-#[derive(Queryable)]
+#[derive(Clone, Queryable, AsChangeset)]
 pub struct Account {
     pub id: i32,
     pub name: String,
+    pub last_character: String,
 }
 
 #[derive(Insertable)]
 #[table_name = "accounts"]
 pub struct NewAccount<'a> {
     pub name: &'a str,
-}
-
-#[derive(Queryable, Associations)]
-#[belongs_to(Account)]
-pub struct Character {
-    pub id: i32,
-    pub account_id: i32,
-    pub name: String,
-
-}
-
-#[derive(Insertable)]
-#[table_name = "characters"]
-pub struct NewCharacter<'a> {
-    pub account_id: i32,
-    pub name: &'a str,
-}
-
-#[derive(Queryable, Associations)]
-#[belongs_to(Character)]
-pub struct StashList {
-    pub id: i32,
-    pub character_id: i32,
-}
-#[derive(Insertable)]
-#[table_name = "stash_lists"]
-pub struct NewStashList {
-    pub character_id: i32,
+    pub last_character: &'a str,
 }
 
 #[derive(Queryable, Associations, Insertable)]
-#[belongs_to(StashList)]
+#[belongs_to(Account)]
 #[table_name = "stash_tabs"]
 pub struct TableStashTab {
     pub id: String,
-    pub stash_list_id: i32,
+    pub account_id: i32,
     pub public: bool,
     pub stash: Option<String>,
     pub stash_type: String,

@@ -18,7 +18,7 @@ use crate::models::TableItem;
 #[derive(Deserialize, Debug)]
 pub struct PublicStashTabRequest {
     pub next_change_id: Option<String>,
-    stashes: Option<Vec<StashTab>>
+    pub stashes: Option<Vec<StashTab>>
 }
 
 #[derive(Clone, Default, Deserialize, Debug)]
@@ -36,10 +36,10 @@ pub struct StashTab {
 
 impl StashTab {
     // TODO: Confirm clone method, doesnt look right?
-    pub fn convertToTableStashTab(&self, stash_list_id: i32) -> TableStashTab{
+    pub fn convertToTableStashTab(&self, account_id: i32) -> TableStashTab{
         TableStashTab {
             id: self.id.clone(),
-            stash_list_id: stash_list_id,
+            account_id: account_id,
             league: self.league.clone(),
             public: self.public,
             stash_type: self.stash_type.clone(),

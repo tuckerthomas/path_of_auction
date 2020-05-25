@@ -19,11 +19,12 @@ pub fn establish_connection() -> PgConnection {
 
 use self::models::{Account, NewAccount};
 
-pub fn create_account<'a>(conn: &PgConnection, name: &'a str) -> Account{
+pub fn create_account<'a>(conn: &PgConnection, name: &'a str, last_character: &'a str) -> Account{
     use schema::accounts;
 
     let new_account = NewAccount {
         name: name,
+        last_character: last_character
     };
 
     diesel::insert_into(accounts::table)
@@ -32,44 +33,28 @@ pub fn create_account<'a>(conn: &PgConnection, name: &'a str) -> Account{
         .expect("Could not create a new Account")
 }
 
-use self::models::{Character, NewCharacter};
+pub fn lookup_account<'a>(conn: &PgConnection, search_name: &'a str) -> Result<Account, diesel::result::Error> {
+    use schema::accounts::dsl::*;
 
-pub fn create_character<'a>(conn: &PgConnection, account_id: i32, name: &'a str) -> Character {
-    use schema::characters;
-
-    let new_character = NewCharacter {
-        account_id: account_id,
-        name: name
-    };
-
-    diesel::insert_into(characters::table)
-        .values(&new_character)
-        .get_result(conn)
-        .expect("Could not create a new Character")
+    accounts.filter(name.eq(search_name))
+        .first::<Account>(conn)
 }
 
-use self::models::{StashList, NewStashList};
+pub fn update_account(conn: &PgConnection, account: Account) -> Result<Account, diesel::result::Error> {
+    use schema::accounts::dsl::*;
 
-pub fn create_stash_list(conn: &PgConnection, character_id: i32) -> StashList {
-    use schema::stash_lists;
-
-    let new_stash_list = NewStashList {
-        character_id: character_id
-    };
-
-    diesel::insert_into(stash_lists::table)
-        .values(new_stash_list)
-        .get_result(conn)
-        .expect("Could not create a new Stash List")
+    diesel::update(accounts.filter(id.eq(account.id)))
+        .set(&account)
+        .get_result::<Account>(conn)
 }
 
 use self::models::TableStashTab;
 use self::public_stash_tabs::StashTab;
 
-pub fn update_stash(conn: &PgConnection, stash_list_id: i32, stash_tab: StashTab) -> TableStashTab {
+pub fn update_stash(conn: &PgConnection, account_id: i32, stash_tab: StashTab) -> TableStashTab {
     use schema::stash_tabs;
 
-    let new_stash_tab = stash_tab.convertToTableStashTab(stash_list_id);
+    let new_stash_tab = stash_tab.convertToTableStashTab(account_id);
 
     diesel::insert_into(stash_tabs::table)
         .values(new_stash_tab)

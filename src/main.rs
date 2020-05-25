@@ -1,10 +1,13 @@
 use bytes::buf::BufExt as _;
 use hyper::Client;
 
-use path_of_auction::public_stash_tabs::PublicStashTabRequest;
+use path_of_auction::public_stash_tabs::*;
+use path_of_auction::*;
 
 use std::error::Error;
 use std::convert::TryInto;
+
+use diesel::prelude::*; 
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -14,7 +17,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Last ID left on 25494418-26606951-25417312-25066282-26588786
     // START 2947-5227-4265-5439-1849
     // Delerium 715190373-729521754-696364788-787219679-751860877
-    let inital_id = "715190373-729521754-696364788-787219679-751860877".to_string();
+    let inital_id = "715487020-729827007-696655000-787533836-752338242".to_string();
 
     let pub_stash_tab = get_stash_tabs(inital_id).await?;
 
@@ -61,7 +64,9 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dy
     // Deserialize request
     let pub_stash_tab: PublicStashTabRequest = serde_json::from_reader(body.reader())?;
     println!("Deserialize in {}ms", now.elapsed().as_millis());
-    println!("Full Request in {}ms", full_req.elapsed().as_millis());
+
+    // Reset now
+    now = std::time::Instant::now();
 
     // Check to see if past rate-limiting
     // TODO: Change to read dynamic xratelimit header
@@ -69,11 +74,42 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dy
     if pub_stash_tab.next_change_id.clone().unwrap() == next_id {
         println!("No Data change, sleeping...");
         std::thread::sleep(std::time::Duration::from_millis(500));
-    } else if full_req.elapsed().as_millis() < 525 {
-        let sleep_time = ((525 - full_req.elapsed().as_millis())).try_into().unwrap();
-        println!("Acquired Data too quickly, sleeping for {}ms", sleep_time);
-        std::thread::sleep(std::time::Duration::from_millis(sleep_time));
+    } else {
+        let conn = establish_connection();
+
+        for stash_tab in pub_stash_tab.stashes.clone().unwrap() {
+            if stash_tab.public {
+                update_stash(&conn, stash_tab);
+            }
+        }
     }
+    println!("Processing in {}ms", now.elapsed().as_millis());
+    println!("Full Request in {}ms", full_req.elapsed().as_millis());
 
     Ok(pub_stash_tab)
+}
+
+fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
+    // Lookup account
+    let account = match lookup_account(conn, stash_tab.account_name.clone().unwrap().as_str()) {
+        Ok(mut account) => {
+            // Update last character
+            account.last_character = stash_tab.last_character_name.unwrap();
+            account = match update_account(conn, account.clone()) {
+                Err(e) => {
+                    eprintln!("Could not update account {}", e);
+                    account
+                }
+                Ok(updated_account) => updated_account,
+            };
+            account
+        },
+        Err(e) => {
+            eprintln!("Account didn't exist {}", e);
+            create_account(conn, stash_tab.account_name.clone().unwrap().as_str(), stash_tab.last_character_name.unwrap().clone().as_str())
+        }
+    };
+    
+    // Insert stash
+    // insert items
 }

@@ -14,6 +14,6 @@ fn main() {
 
     let name = &name[..(name.len() - 1)]; // Remove newline
 
-    let account = create_account(&connection, &name);
+    let account = create_account(&connection, &name, &name);
     println!("\nCreated Account {} with id {}", account.name, account.id);
 }
