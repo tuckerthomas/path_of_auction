@@ -1,6 +1,6 @@
 table! {
     use diesel::sql_types::*;
-    use crate::models::*;
+    use use crate::public_stash_tabs::*;
 
     accounts (id) {
         id -> Int4,
@@ -10,7 +10,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::*;
+    use use crate::public_stash_tabs::*;
 
     characters (id) {
         id -> Int4,
@@ -21,13 +21,13 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::*;
+    use use crate::public_stash_tabs::*;
 
     items (id) {
         abyss_jewel -> Nullable<Bool>,
         additional_properties -> Nullable<Array<ItemRequirementsType>>,
         art_file_name -> Nullable<Varchar>,
-        category -> Nullable<Varchar>,
+        category -> Varchar,
         corrupted -> Nullable<Bool>,
         cosmetic_mods -> Nullable<Array<Text>>,
         crafted_mods -> Nullable<Array<Text>>,
@@ -36,24 +36,24 @@ table! {
         elder -> Nullable<Bool>,
         enchant_mods -> Nullable<Array<Text>>,
         explicit_mods -> Nullable<Array<Text>>,
-        extended -> Nullable<ItemExtendedDataType>,
+        extended -> ItemExtendedDataType,
         flavour_text -> Nullable<Array<Text>>,
         fractured -> Nullable<Bool>,
         fractured_mods -> Nullable<Array<Text>>,
-        frame_type -> Nullable<FrameTypeType>,
-        h -> Nullable<Int4>,
-        icon -> Nullable<Varchar>,
+        frame_type -> FrameTypeType,
+        h -> Int4,
+        icon -> Varchar,
         id -> Varchar,
-        identified -> Nullable<Bool>,
-        ilvl -> Nullable<Int4>,
+        identified -> Bool,
+        ilvl -> Int4,
         implicit_mods -> Nullable<Array<Text>>,
         influences -> Nullable<InfluenceType>,
         inventory_id -> Nullable<Varchar>,
         is_relic -> Nullable<Bool>,
-        league -> Nullable<Varchar>,
+        league -> Varchar,
         locked_to_character -> Nullable<Bool>,
         max_stack_size -> Nullable<Int4>,
-        name -> Nullable<Varchar>,
+        name -> Varchar,
         next_level_requirements -> Nullable<Array<ItemRequirementsType>>,
         note -> Nullable<Varchar>,
         properties -> Nullable<Array<ItemRequirementsType>>,
@@ -64,21 +64,21 @@ table! {
         shaper -> Nullable<Bool>,
         sockets -> Nullable<Array<SocketType>>,
         stack_size -> Nullable<Int4>,
-        stash_tab_id -> Nullable<Varchar>,
+        stash_tab_id -> Varchar,
         support -> Nullable<Bool>,
         talisman_tier -> Nullable<Int4>,
-        type_line -> Nullable<Varchar>,
+        type_line -> Varchar,
         utility_mods -> Nullable<Array<Text>>,
-        verified -> Nullable<Bool>,
-        w -> Nullable<Int4>,
-        x -> Nullable<Int4>,
-        y -> Nullable<Int4>,
+        verified -> Bool,
+        w -> Int4,
+        x -> Int4,
+        y -> Int4,
     }
 }
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::*;
+    use use crate::public_stash_tabs::*;
 
     stash_lists (id) {
         id -> Int4,
@@ -88,7 +88,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use crate::models::*;
+    use use crate::public_stash_tabs::*;
 
     stash_tabs (id) {
         id -> Varchar,

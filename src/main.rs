@@ -1,9 +1,7 @@
-mod public_stash_tabs;
-
 use bytes::buf::BufExt as _;
 use hyper::Client;
 
-use public_stash_tabs::PublicStashTabRequest;
+use path_of_auction::public_stash_tabs::PublicStashTabRequest;
 
 use std::error::Error;
 use std::convert::TryInto;
