@@ -1,7 +1,7 @@
 use diesel::*;
 
 use crate::schema::*;
-use crate::models::TableStashTab;
+use crate::models::{TableStashTab, Item};
 use crate::models::{ItemRequirements, ItemExtendedData, FrameType, Influence, Socket};
 
 #[derive(Clone, Queryable, Associations, Insertable, AsChangeset)]
@@ -57,4 +57,20 @@ pub struct TableItem {
     pub w: i32,
     pub x: i32,
     pub y: i32,
+}
+
+impl TableItem {
+    pub fn update_item(conn: &PgConnection, new_stash_tab_id: String, item: Item) -> TableItem {
+        use crate::schema::items::dsl::*;
+    
+        let new_item = item.convertToTableItem(new_stash_tab_id);
+    
+        diesel::insert_into(items)
+            .values(new_item.clone())
+            .on_conflict(id)
+            .do_update()
+            .set(new_item)
+            .get_result(conn)
+            .expect("Could not create new item")
+    }
 }

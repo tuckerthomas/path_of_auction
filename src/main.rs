@@ -91,11 +91,11 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dy
 
 fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
     // Lookup account
-    let account = match lookup_account(conn, stash_tab.account_name.clone().unwrap().as_str()) {
+    let account = match Account::lookup_account(conn, stash_tab.account_name.clone().unwrap().as_str()) {
         Ok(mut account) => {
             // Update last character
             account.last_character = stash_tab.last_character_name.clone().unwrap();
-            account = match update_account(conn, account.clone()) {
+            account = match Account::update_account(conn, account.clone()) {
                 Err(e) => {
                     eprintln!("Could not update account {}", e);
                     account
@@ -106,12 +106,12 @@ fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
         },
         Err(e) => {
             // Account didnt exist
-            create_account(conn, stash_tab.account_name.clone().unwrap().as_str(), stash_tab.last_character_name.clone().unwrap().as_str())
+            Account::create_account(conn, stash_tab.account_name.clone().unwrap().as_str(), stash_tab.last_character_name.clone().unwrap().as_str())
         }
     };
     
     // Insert stash
-    let stash = match upsert_stash(conn, account.id, stash_tab.clone()) {
+    let stash = match TableStashTab::upsert_stash(conn, account.id, stash_tab.clone()) {
         Ok(stash) => stash, 
         Err(e) => { 
             eprintln!("Could not update stash {}", e);
@@ -121,7 +121,7 @@ fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
 
     // insert items
     for item in stash_tab.items.unwrap() {
-        update_item(conn, stash.id.clone(), item);
+        TableItem::update_item(conn, stash.id.clone(), item);
         //println!("Added Item!");
     }
 }
