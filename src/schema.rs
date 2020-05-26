@@ -1,6 +1,6 @@
 table! {
     use diesel::sql_types::*;
-    use use crate::public_stash_tabs::*;
+    use use crate::models::*;
 
     accounts (id) {
         id -> Int4,
@@ -11,7 +11,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use use crate::public_stash_tabs::*;
+    use use crate::models::*;
 
     items (id) {
         abyss_jewel -> Nullable<Bool>,
@@ -68,7 +68,7 @@ table! {
 
 table! {
     use diesel::sql_types::*;
-    use use crate::public_stash_tabs::*;
+    use use crate::models::*;
 
     stash_tabs (id) {
         id -> Varchar,

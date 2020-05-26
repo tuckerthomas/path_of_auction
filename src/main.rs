@@ -1,7 +1,7 @@
 use bytes::buf::BufExt as _;
 use hyper::Client;
 
-use path_of_auction::public_stash_tabs::*;
+use path_of_auction::models::*;
 use path_of_auction::*;
 
 use std::error::Error;
@@ -124,6 +124,4 @@ fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
         update_item(conn, stash.id.clone(), item);
         //println!("Added Item!");
     }
-
-    println!("Finished Stash");
 }

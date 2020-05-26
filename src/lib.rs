@@ -3,8 +3,8 @@ extern crate diesel;
 extern crate dotenv;
 
 pub mod schema;
+
 pub mod models;
-pub mod public_stash_tabs;
 
 use diesel::prelude::*;
 use dotenv::dotenv;
@@ -49,7 +49,7 @@ pub fn update_account(conn: &PgConnection, account: Account) -> Result<Account, 
 }
 
 use self::models::TableStashTab;
-use self::public_stash_tabs::StashTab;
+use self::models::StashTab;
 
 pub fn upsert_stash(conn: &PgConnection, new_account_id: i32, stash_tab: StashTab) -> Result<TableStashTab, diesel::result::Error> {
     use schema::stash_tabs::dsl::*;
@@ -65,7 +65,7 @@ pub fn upsert_stash(conn: &PgConnection, new_account_id: i32, stash_tab: StashTa
 }
 
 use self::models::TableItem;
-use self::public_stash_tabs::Item;
+use self::models::Item;
 
 pub fn update_item(conn: &PgConnection, new_stash_tab_id: String, item: Item) -> TableItem {
     use schema::items::dsl::*;
