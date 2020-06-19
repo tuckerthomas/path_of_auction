@@ -2,37 +2,44 @@ use bytes::buf::BufExt as _;
 use hyper::Client;
 
 use path_of_auction::models::*;
+use path_of_auction::threads::*;
 use path_of_auction::*;
 
 use std::error::Error;
 use std::convert::TryInto;
 
-use diesel::prelude::*; 
+const NTHREADS: u32 = 200;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // Connect to database
+    let db_pool = establish_connection(NTHREADS);
+
+    // Start worker pool
+    let work_pool = threads::ThreadPool::new(NTHREADS.try_into().unwrap(), db_pool);
+
     // TODO: move to arg/class/config/env_var
     // API Stats https://poe.watch/stats?type=time
     // START OF BLIGHT: 475841770-492541661-464580457-531662984-505125106
     // Last ID left on 25494418-26606951-25417312-25066282-26588786
     // START 2947-5227-4265-5439-1849
     // Delerium 715190373-729521754-696364788-787219679-751860877
-    let inital_id = "715487020-729827007-696655000-787533836-752338242".to_string();
+    let inital_id = "730821355-744837821-710455127-803797332-767101094".to_string();
 
-    let pub_stash_tab = get_stash_tabs(inital_id).await?;
+    let pub_stash_tab = get_stash_tabs(inital_id, &work_pool).await?;
 
     println!("Got first request!");
 
     let mut next_change_id = pub_stash_tab.next_change_id.unwrap().clone();
 
     // Acquire next stash tab
-    loop {    
-        let pub_stash_tab = get_stash_tabs(next_change_id).await?;
+    loop {   
+        let pub_stash_tab = get_stash_tabs(next_change_id, &work_pool).await?;
         next_change_id = pub_stash_tab.next_change_id.unwrap().clone();
     }
 }
 
-async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dyn Error>> {
+async fn get_stash_tabs(next_id: String, work_pool: &ThreadPool) -> Result<PublicStashTabRequest, Box<dyn Error>> {
     //TODO: Track averages
     println!("\nGetting ID: {}", next_id);
 
@@ -73,55 +80,30 @@ async fn get_stash_tabs(next_id: String) -> Result<PublicStashTabRequest, Box<dy
     // TODO: un-hard code miliseconds
     if pub_stash_tab.next_change_id.clone().unwrap() == next_id {
         println!("No Data change, sleeping...");
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        std::thread::sleep(std::time::Duration::from_millis(1000));
     } else {
-        let conn = establish_connection();
-
         for stash_tab in pub_stash_tab.stashes.clone().unwrap() {
             if stash_tab.public {
-                update_stash(&conn, stash_tab);
+                // TODO: Determine what happens if all the worker's are busy
+                // IE: The work pool sends a message, but there's no thread able to receive it?
+                // TODO: Move stash_queue to its own thread, create a mutex for said queue and then send them to the workers
+                // TODO: halt thread update until all stashes have been processed in the queue
+                work_pool.send_work(stash_tab);
             }
         }
     }
+
+    // Clear out the work queue for the next requeust
+    while work_pool.get_size() > 200000 {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+
     println!("Processing in {}ms", now.elapsed().as_millis());
     println!("Full Request in {}ms", full_req.elapsed().as_millis());
 
-    Ok(pub_stash_tab)
-}
-
-fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
-    // Lookup account
-    let account = match Account::lookup_account(conn, stash_tab.account_name.clone().unwrap().as_str()) {
-        Ok(mut account) => {
-            // Update last character
-            account.last_character = stash_tab.last_character_name.clone().unwrap();
-            account = match Account::update_account(conn, account.clone()) {
-                Err(e) => {
-                    eprintln!("Could not update account {}", e);
-                    account
-                }
-                Ok(updated_account) => updated_account,
-            };
-            account
-        },
-        Err(e) => {
-            // Account didnt exist
-            Account::create_account(conn, stash_tab.account_name.clone().unwrap().as_str(), stash_tab.last_character_name.clone().unwrap().as_str())
-        }
-    };
-    
-    // Insert stash
-    let stash = match TableStashTab::upsert_stash(conn, account.id, stash_tab.clone()) {
-        Ok(stash) => stash, 
-        Err(e) => { 
-            eprintln!("Could not update stash {}", e);
-            stash_tab.clone().convertToTableStashTab(account.id)
-        }
-    };
-
-    // insert items
-    for item in stash_tab.items.unwrap() {
-        TableItem::update_item(conn, stash.id.clone(), item);
-        //println!("Added Item!");
+    if full_req.elapsed().as_millis() < 500 {
+        std::thread::sleep(std::time::Duration::from_millis(((500 - full_req.elapsed().as_millis())).try_into().unwrap()));
     }
+
+    Ok(pub_stash_tab)
 }

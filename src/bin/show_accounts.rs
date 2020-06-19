@@ -8,7 +8,7 @@ use diesel::prelude::*;
 fn main() {
     use self::schema::accounts::dsl::*;
 
-    let connection = establish_connection();
+    let connection = establish_connection().get().unwrap();
     let results = accounts
         .limit(5)
         .load::<Account>(&connection)

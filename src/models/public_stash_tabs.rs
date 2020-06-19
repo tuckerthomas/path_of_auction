@@ -36,7 +36,8 @@ pub struct StashTab {
 
 impl StashTab {
     // TODO: Confirm clone method, doesnt look right?
-    pub fn convertToTableStashTab(&self, account_id: i32) -> TableStashTab{
+    // Look into Arc and Rc
+    pub fn convert_to_table_stash_tab(&self, account_id: i32) -> TableStashTab{
         TableStashTab {
             id: self.id.clone(),
             account_id: account_id,
@@ -104,8 +105,9 @@ pub struct Item {
 }
 
 impl Item {
-    pub fn convertToTableItem(&self, stash_tab_id: String) -> TableItem {
+    pub fn convert_to_table_item(&self, stash_tab_id: String) -> TableItem {
         // TODO: Confirm clone method, doesnt look right?
+        // Look into Arc and Rc
         TableItem {
             abyss_jewel: self.abyss_jewel,
             additional_properties: self.additional_properties.clone(),
@@ -160,12 +162,12 @@ impl Item {
     }
 
     fn convertToTableItemInclSocketedItems(&self, stash_tab_id: String) -> (TableItem, Vec<TableItem>) {
-        let original_item = self.convertToTableItem(stash_tab_id.clone());
+        let original_item = self.convert_to_table_item(stash_tab_id.clone());
 
         let mut socketed_items = Vec::new();
 
         for item in self.socketed_items.clone().expect("No socketed items!") {
-            socketed_items.push(item.convertToTableItem(stash_tab_id.clone()));
+            socketed_items.push(item.convert_to_table_item(stash_tab_id.clone()));
         }
 
         return (original_item, socketed_items);

@@ -1,4 +1,5 @@
 use diesel::*;
+use diesel::pg::upsert::*;
 
 use crate::schema::*;
 use crate::models::{TableStashTab, Item};
@@ -60,10 +61,10 @@ pub struct TableItem {
 }
 
 impl TableItem {
-    pub fn update_item(conn: &PgConnection, new_stash_tab_id: String, item: Item) -> TableItem {
+    pub fn upsert_item(conn: &PgConnection, new_stash_tab_id: String, item: Item) -> TableItem {
         use crate::schema::items::dsl::*;
     
-        let new_item = item.convertToTableItem(new_stash_tab_id);
+        let new_item = item.convert_to_table_item(new_stash_tab_id);
     
         diesel::insert_into(items)
             .values(new_item.clone())
@@ -72,5 +73,23 @@ impl TableItem {
             .set(new_item)
             .get_result(conn)
             .expect("Could not create new item")
+    }
+
+    pub fn upsert_items(conn: &PgConnection, new_stash_tab_id: String, item_to_insert: Vec<Item>) {
+        use crate::schema::items::dsl::*;
+        
+        let mut new_items: Vec<TableItem> = Vec::new();
+
+        for item in item_to_insert {
+            new_items.push(item.convert_to_table_item(new_stash_tab_id.clone()));
+        }
+    
+        diesel::insert_into(items)
+            .values(&new_items)
+            .on_conflict(id)
+            .do_update()
+            .set(stash_tab_id.eq(excluded(stash_tab_id)))
+            .execute(conn)
+            .expect("Could not insert items");
     }
 }

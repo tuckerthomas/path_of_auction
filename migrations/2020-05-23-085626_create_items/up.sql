@@ -67,7 +67,7 @@ create table items (
     frame_type frame_type not null,
     h int4 not null,
     icon text not null,
-    id text primary key,
+    id char(64) primary key,
     identified bool not null,
     ilvl int4 not null,
     implicit_mods text[],

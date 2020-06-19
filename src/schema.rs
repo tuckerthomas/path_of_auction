@@ -33,7 +33,7 @@ table! {
         frame_type -> FrameTypeType,
         h -> Int4,
         icon -> Text,
-        id -> Text,
+        id -> Bpchar,
         identified -> Bool,
         ilvl -> Int4,
         implicit_mods -> Nullable<Array<Text>>,

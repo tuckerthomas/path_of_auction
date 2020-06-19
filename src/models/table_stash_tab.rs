@@ -20,7 +20,7 @@ impl TableStashTab {
     pub fn upsert_stash(conn: &PgConnection, new_account_id: i32, stash_tab: StashTab) -> Result<TableStashTab, diesel::result::Error> {
         use crate::schema::stash_tabs::dsl::*;
     
-        let new_stash_tab = stash_tab.convertToTableStashTab(new_account_id);
+        let new_stash_tab = stash_tab.convert_to_table_stash_tab(new_account_id);
     
         diesel::insert_into(stash_tabs)
             .values(new_stash_tab.clone())

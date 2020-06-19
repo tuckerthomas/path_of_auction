@@ -3,10 +3,10 @@ extern crate diesel;
 
 use path_of_auction::models::Account;
 use self::path_of_auction::*;
-use std::io::{stdin, Read};
+use std::io::stdin;
 
 fn main() {
-    let connection = establish_connection();
+    let connection = establish_connection().get().unwrap();
 
     println!("What would you like to name the account?");
     let mut name = String::new();
