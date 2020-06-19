@@ -1,5 +1,7 @@
 use bytes::buf::BufExt as _;
 use hyper::Client;
+use elasticsearch::*;
+use serde_json::Value;
 
 use path_of_auction::models::*;
 use path_of_auction::threads::*;
@@ -7,16 +9,17 @@ use path_of_auction::*;
 
 use std::error::Error;
 use std::convert::TryInto;
+use std::sync::Arc;
 
 const NTHREADS: u32 = 200;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Connect to database
-    let db_pool = establish_connection(NTHREADS);
+    let client = establish_connection(NTHREADS);
 
     // Start worker pool
-    let work_pool = threads::ThreadPool::new(NTHREADS.try_into().unwrap(), db_pool);
+    let work_pool = threads::ThreadPool::new(NTHREADS.try_into().unwrap(), Arc::clone(&client));
 
     // TODO: move to arg/class/config/env_var
     // API Stats https://poe.watch/stats?type=time
@@ -26,7 +29,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Delerium 715190373-729521754-696364788-787219679-751860877
     let inital_id = "730821355-744837821-710455127-803797332-767101094".to_string();
 
-    let pub_stash_tab = get_stash_tabs(inital_id, &work_pool).await?;
+    let pub_stash_tab = get_stash_tabs(inital_id, Arc::clone(&client)).await?;
 
     println!("Got first request!");
 
@@ -34,12 +37,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Acquire next stash tab
     loop {   
-        let pub_stash_tab = get_stash_tabs(next_change_id, &work_pool).await?;
+        let pub_stash_tab = get_stash_tabs(next_change_id, Arc::clone(&client)).await?;
         next_change_id = pub_stash_tab.next_change_id.unwrap().clone();
     }
 }
 
-async fn get_stash_tabs(next_id: String, work_pool: &ThreadPool) -> Result<PublicStashTabRequest, Box<dyn Error>> {
+async fn get_stash_tabs(next_id: String, e_client: Arc<Elasticsearch>) -> Result<PublicStashTabRequest, Box<dyn Error>> {
     //TODO: Track averages
     println!("\nGetting ID: {}", next_id);
 
@@ -82,20 +85,17 @@ async fn get_stash_tabs(next_id: String, work_pool: &ThreadPool) -> Result<Publi
         println!("No Data change, sleeping...");
         std::thread::sleep(std::time::Duration::from_millis(1000));
     } else {
+        let mut pub_stash_tabs: Vec<StashTab> = Vec::new();
+        
         for stash_tab in pub_stash_tab.stashes.clone().unwrap() {
-            if stash_tab.public {
-                // TODO: Determine what happens if all the worker's are busy
-                // IE: The work pool sends a message, but there's no thread able to receive it?
-                // TODO: Move stash_queue to its own thread, create a mutex for said queue and then send them to the workers
-                // TODO: halt thread update until all stashes have been processed in the queue
-                work_pool.send_work(stash_tab);
+            if stash_tab.public == true {
+                println!("Id: {} added", stash_tab.id);
+                pub_stash_tabs.push(stash_tab);
             }
         }
-    }
 
-    // Clear out the work queue for the next requeust
-    while work_pool.get_size() > 200000 {
-        std::thread::sleep(std::time::Duration::from_millis(100));
+        update_stash(&e_client, pub_stash_tabs.clone()).await;
+        println!("Updated {} stashes", pub_stash_tabs.len());
     }
 
     println!("Processing in {}ms", now.elapsed().as_millis());
@@ -106,4 +106,42 @@ async fn get_stash_tabs(next_id: String, work_pool: &ThreadPool) -> Result<Publi
     }
 
     Ok(pub_stash_tab)
+}
+
+async fn update_stash(client: &Elasticsearch, stash_tabs: Vec<StashTab>) {
+    // Lookup account
+    
+    // Insert stash
+    let body: Vec<BulkOperation<_>> = stash_tabs
+        .iter()
+        .map(|s| {
+            let id = s.id.to_string();
+            BulkOperation::index(&id, s).into()
+        })
+        .collect();
+
+    let response = client
+        .bulk(BulkParts::Index("stashes"))
+        .body(body)
+        .send()
+        .await.expect("Uhhhhhhhhhhh shits wrong");
+
+    
+    let json: Value = response.json().await.unwrap();
+
+    if json["errors"].as_bool().unwrap() {
+        let failed: Vec<&Value> = json["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|v| !v["error"].is_null())
+            .collect();
+
+        // TODO: retry failures
+        println!("Errors whilst indexing. Failures: {}", failed.len());
+    }
+
+    println!("Finished updating");
+    // Insert items
+
 }

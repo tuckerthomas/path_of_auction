@@ -1,4 +1,3 @@
-extern crate diesel;
 extern crate path_of_auction;
 
 use path_of_auction::*;

@@ -1,5 +1,4 @@
 extern crate path_of_auction;
-extern crate diesel;
 
 use path_of_auction::models::Account;
 use self::path_of_auction::*;

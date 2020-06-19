@@ -1,12 +1,12 @@
 use std::thread;
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
 
-use crate::models::{Account, TableItem, TableStashTab, StashTab};
-use crate::PgPool;
+use crate::models::{Account, StashTab};
 
-use diesel::prelude::*;
+use elasticsearch::http::transport::*;
+use elasticsearch::*;
+use tokio::task;
 
 struct WorkQueue<T: Send> {
     queue: Arc<Mutex<VecDeque<T>>>,
@@ -50,7 +50,7 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
-    pub fn new(size: usize, con_pool: Arc<PgPool>) -> Self {
+    pub fn new(size: usize, con_pool: Arc<Elasticsearch>) -> Self {
         assert!(size > 0);
 
         let mut workers = Vec::with_capacity(size);
@@ -58,8 +58,8 @@ impl ThreadPool {
         let work_queue: Arc<WorkQueue<StashTab>> = Arc::new(WorkQueue::new());
 
         for id in 0..size {
-            let new_pool = Arc::clone(&con_pool);
-            workers.push(Worker::new(id, Arc::clone(&work_queue), new_pool));
+            let new_client = Arc::clone(&con_pool);
+            workers.push(Worker::new(id, Arc::clone(&work_queue), new_client));
         }
 
         ThreadPool {
@@ -97,18 +97,16 @@ struct Worker {
 }
 
 impl Worker {
-    fn new(id: usize, work_queue: Arc<WorkQueue<StashTab>>, db_pool: Arc<PgPool>) -> Worker {
-        let thread = thread::spawn(move || {
-            let conn = db_pool.get().unwrap();
-
+    fn new(id: usize, work_queue: Arc<WorkQueue<StashTab>>, client: Arc<Elasticsearch>) -> Worker {
+        let thread = thread::spawn( move || {
             loop {
                 let work = work_queue.get_work();
 
                 match work {
                     Some(work) => {
                         let process_time = std::time::Instant::now();
-                        //println!("Thread {} got work: {}", id, work.id);
-                        update_stash(&conn, work.clone());
+                        println!("Thread {} got work: {}", id, work.id);
+                        update_stash(Arc::clone(&client), work.clone());
                         println!("Thread {} finished work: {} taking {}ms", id, work.id, process_time.elapsed().as_millis());
 
                     },
@@ -127,42 +125,11 @@ impl Worker {
     }
 }
 
-fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
+fn update_stash(client: Arc<Elasticsearch>, stash_tab: StashTab) {
     // Lookup account
-    let account = match Account::lookup_account(conn, stash_tab.account_name.clone().unwrap().as_str()) {
-        Ok(mut account) => {
-            // Update last character
-            account.last_character = stash_tab.last_character_name.clone().unwrap();
-            account = match Account::update_account(conn, account.clone()) {
-                Err(e) => {
-                    eprintln!("Could not update account {}", e);
-                    account
-                }
-                Ok(updated_account) => updated_account,
-            };
-            account
-        },
-        Err(_e) => {
-            // TODO: break into different errors
-            // Error doesn't get used, because account didnt exist
-            Account::create_account(conn, stash_tab.account_name.clone().unwrap().as_str(), stash_tab.last_character_name.clone().unwrap().as_str())
-        }
-    };
     
     // Insert stash
-    let stash = match TableStashTab::upsert_stash(conn, account.id, stash_tab.clone()) {
-        Ok(stash) => stash, 
-        Err(e) => { 
-            eprintln!("Could not update stash {}", e);
-            stash_tab.clone().convert_to_table_stash_tab(account.id)
-        }
-    };
 
-    /*
-    // insert items
-    for item in stash_tab.items.unwrap() {
-        TableItem::upsert_item(conn, stash.id.clone(), item);
-    }*/
+    // Insert items
 
-    TableItem::upsert_items(conn, stash.id.clone(), stash_tab.items.unwrap());
 }
