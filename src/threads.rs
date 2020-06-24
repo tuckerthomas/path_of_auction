@@ -58,8 +58,7 @@ impl ThreadPool {
         let work_queue: Arc<WorkQueue<StashTab>> = Arc::new(WorkQueue::new());
 
         for id in 0..size {
-            let new_client = Arc::clone(&con_pool);
-            workers.push(Worker::new(id, Arc::clone(&work_queue), new_client));
+            workers.push(Worker::new(id, Arc::clone(&work_queue), Arc::clone(&con_pool)));
         }
 
         ThreadPool {
@@ -79,35 +78,23 @@ impl ThreadPool {
     }
 }
 
-impl Drop for ThreadPool {
-    fn drop(&mut self) {
-        for worker in &mut self.workers {
-            println!("Shutting down worker {}", worker.id);
-
-            if let Some(thread) = worker.thread.take() {
-                thread.join().unwrap();
-            }
-        }
-    }
-}
-
 struct Worker {
     id: usize,
-    thread: Option<thread::JoinHandle<()>>
+    thread: Option<tokio::task::JoinHandle<()>>
 }
 
 impl Worker {
     fn new(id: usize, work_queue: Arc<WorkQueue<StashTab>>, client: Arc<Elasticsearch>) -> Worker {
-        let thread = thread::spawn( move || {
+        let thread = tokio::spawn(async move {
             loop {
                 let work = work_queue.get_work();
 
                 match work {
                     Some(work) => {
                         let process_time = std::time::Instant::now();
-                        println!("Thread {} got work: {}", id, work.id);
-                        update_stash(Arc::clone(&client), work.clone());
-                        println!("Thread {} finished work: {} taking {}ms", id, work.id, process_time.elapsed().as_millis());
+                        //println!("Thread {} got work: {}", id, work.id);
+                        update_stash(Arc::clone(&client), work.clone()).await;
+                        //println!("Thread {} finished work: {} taking {}ms", id, work.id, process_time.elapsed().as_millis());
 
                     },
                     _ => {
@@ -125,11 +112,12 @@ impl Worker {
     }
 }
 
-fn update_stash(client: Arc<Elasticsearch>, stash_tab: StashTab) {
-    // Lookup account
-    
-    // Insert stash
+async fn update_stash(client: Arc<Elasticsearch>, stash_tab: StashTab) {
 
-    // Insert items
+    let response = client
+        .index(IndexParts::IndexId("stashes", stash_tab.id.clone().as_str()))
+        .body(serde_json::to_value(stash_tab).unwrap())
+        .send()
+        .await.expect("Uhhhhhhhhhhh shits wrong");
 
 }

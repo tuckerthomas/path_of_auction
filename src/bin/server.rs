@@ -1,7 +1,9 @@
 use bytes::buf::BufExt as _;
 use hyper::Client;
 use elasticsearch::*;
+use elasticsearch::http::request::JsonBody;
 use serde_json::Value;
+use serde_json::json;
 
 use path_of_auction::models::*;
 use path_of_auction::threads::*;
@@ -11,7 +13,7 @@ use std::error::Error;
 use std::convert::TryInto;
 use std::sync::Arc;
 
-const NTHREADS: u32 = 200;
+const NTHREADS: u32 = 3;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -19,7 +21,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let client = establish_connection(NTHREADS);
 
     // Start worker pool
-    let work_pool = threads::ThreadPool::new(NTHREADS.try_into().unwrap(), Arc::clone(&client));
+    let work_pool = Arc::new(threads::ThreadPool::new(NTHREADS.try_into().unwrap(), Arc::clone(&client)));
 
     // TODO: move to arg/class/config/env_var
     // API Stats https://poe.watch/stats?type=time
@@ -27,9 +29,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Last ID left on 25494418-26606951-25417312-25066282-26588786
     // START 2947-5227-4265-5439-1849
     // Delerium 715190373-729521754-696364788-787219679-751860877
-    let inital_id = "730821355-744837821-710455127-803797332-767101094".to_string();
+    let inital_id = "736409016-750362586-715726088-810053528-772683139".to_string();
 
-    let pub_stash_tab = get_stash_tabs(inital_id, Arc::clone(&client)).await?;
+    let pub_stash_tab = get_stash_tabs(inital_id, Arc::clone(&work_pool)).await?;
 
     println!("Got first request!");
 
@@ -37,12 +39,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Acquire next stash tab
     loop {   
-        let pub_stash_tab = get_stash_tabs(next_change_id, Arc::clone(&client)).await?;
+        let pub_stash_tab = get_stash_tabs(next_change_id, Arc::clone(&work_pool)).await?;
         next_change_id = pub_stash_tab.next_change_id.unwrap().clone();
     }
 }
 
-async fn get_stash_tabs(next_id: String, e_client: Arc<Elasticsearch>) -> Result<PublicStashTabRequest, Box<dyn Error>> {
+async fn get_stash_tabs(next_id: String, work_queue: Arc<ThreadPool>) -> Result<PublicStashTabRequest, Box<dyn Error>> {
     //TODO: Track averages
     println!("\nGetting ID: {}", next_id);
 
@@ -85,17 +87,17 @@ async fn get_stash_tabs(next_id: String, e_client: Arc<Elasticsearch>) -> Result
         println!("No Data change, sleeping...");
         std::thread::sleep(std::time::Duration::from_millis(1000));
     } else {
-        let mut pub_stash_tabs: Vec<StashTab> = Vec::new();
-        
         for stash_tab in pub_stash_tab.stashes.clone().unwrap() {
             if stash_tab.public == true {
-                println!("Id: {} added", stash_tab.id);
-                pub_stash_tabs.push(stash_tab);
+                //println!("Id: {} added", stash_tab.id);
+                work_queue.send_work(stash_tab);
             }
         }
+    }
 
-        update_stash(&e_client, pub_stash_tabs.clone()).await;
-        println!("Updated {} stashes", pub_stash_tabs.len());
+    while work_queue.get_size() > 200000 {
+        // Wait until queue is empty
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
     println!("Processing in {}ms", now.elapsed().as_millis());
@@ -114,9 +116,9 @@ async fn update_stash(client: &Elasticsearch, stash_tabs: Vec<StashTab>) {
     // Insert stash
     let body: Vec<BulkOperation<_>> = stash_tabs
         .iter()
-        .map(|s| {
-            let id = s.id.to_string();
-            BulkOperation::index(&id, s).into()
+        .map(|p| {
+            let id = p.id.to_string();
+            BulkOperation::index(&id, p).routing(&id).into()
         })
         .collect();
 
@@ -125,21 +127,6 @@ async fn update_stash(client: &Elasticsearch, stash_tabs: Vec<StashTab>) {
         .body(body)
         .send()
         .await.expect("Uhhhhhhhhhhh shits wrong");
-
-    
-    let json: Value = response.json().await.unwrap();
-
-    if json["errors"].as_bool().unwrap() {
-        let failed: Vec<&Value> = json["items"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter(|v| !v["error"].is_null())
-            .collect();
-
-        // TODO: retry failures
-        println!("Errors whilst indexing. Failures: {}", failed.len());
-    }
 
     println!("Finished updating");
     // Insert items

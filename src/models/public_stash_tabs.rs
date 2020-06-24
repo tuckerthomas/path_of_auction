@@ -1,7 +1,7 @@
 
 // Serde
 use serde::{Serialize, Deserialize};
-use serde_repr::Deserialize_repr;
+use serde_repr::{Serialize_repr, Deserialize_repr};
 use serde_with::skip_serializing_none;
 
 #[derive(Deserialize, Debug)]
@@ -109,9 +109,11 @@ pub struct ItemRequirements {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct ItemLineContentValue(String, i32);
+pub struct ItemLineContentValue {
+    value: String, data: i32
+}
 
-#[derive(Serialize, Deserialize_repr, Debug, Clone, PartialEq)]
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, PartialEq)]
 #[repr(u8)]
 pub enum FrameType {
     Normal = 0,
