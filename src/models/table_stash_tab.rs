@@ -10,17 +10,30 @@ use crate::schema::*;
 pub struct TableStashTab {
     pub id: String,
     pub account_id: i32,
-    pub public: bool,
-    pub stash: Option<String>,
-    pub stash_type: String,
-    pub league: Option<String>
+    pub items: Option<Vec<String>>,
+    pub stash_data: Option<StashTab>
 }
 
 impl TableStashTab {
+    pub fn new(new_account_id: i32, stash_tab: StashTab) -> Self {
+        let mut item_ids: Vec<String> = Vec::new();
+
+        for item in stash_tab.items.clone().unwrap() {
+            item_ids.push(item.id);
+        }
+
+        TableStashTab {
+            id: stash_tab.id.clone(),
+            account_id: new_account_id,
+            items: Some(item_ids),
+            stash_data: Some(stash_tab)
+        }
+    }
+
     pub fn upsert_stash(conn: &PgConnection, new_account_id: i32, stash_tab: StashTab) -> Result<TableStashTab, diesel::result::Error> {
         use crate::schema::stash_tabs::dsl::*;
-    
-        let new_stash_tab = stash_tab.convert_to_table_stash_tab(new_account_id);
+
+        let new_stash_tab = TableStashTab::new(new_account_id, stash_tab);
     
         diesel::insert_into(stash_tabs)
             .values(new_stash_tab.clone())

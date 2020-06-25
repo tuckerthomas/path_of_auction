@@ -7,7 +7,7 @@ pub mod models;
 pub mod threads;
 
 use diesel::PgConnection;
-use diesel::r2d2::{ Pool, PooledConnection, ConnectionManager, PoolError };
+use diesel::r2d2::{ Pool, PooledConnection, ConnectionManager};
 use dotenv::dotenv;
 
 use std::env;

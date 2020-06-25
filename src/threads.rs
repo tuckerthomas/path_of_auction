@@ -1,5 +1,4 @@
 use std::thread;
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
 
@@ -106,10 +105,10 @@ impl Worker {
 
                 match work {
                     Some(work) => {
-                        let process_time = std::time::Instant::now();
+                        let _process_time = std::time::Instant::now();
                         //println!("Thread {} got work: {}", id, work.id);
                         update_stash(&conn, work.clone());
-                        println!("Thread {} finished work: {} taking {}ms", id, work.id, process_time.elapsed().as_millis());
+                        //println!("Thread {} finished work: {} taking {}ms", id, work.id, process_time.elapsed().as_millis());
 
                     },
                     _ => {
@@ -154,7 +153,7 @@ fn update_stash(conn: &PgConnection, stash_tab: StashTab) {
         Ok(stash) => stash, 
         Err(e) => { 
             eprintln!("Could not update stash {}", e);
-            stash_tab.clone().convert_to_table_stash_tab(account.id)
+            TableStashTab::new(account.id, stash_tab.clone())
         }
     };
 

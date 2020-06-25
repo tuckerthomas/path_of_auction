@@ -11,7 +11,7 @@ hyper = { version = "0.13", features = ["runtime"] }
 tokio = { version = "0.2", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_with = { version = "1.4" }
-diesel = { version = "1", features = ["postgres", "64-column-tables", "r2d2"] }
+diesel = { version = "1", features = ["postgres", "64-column-tables", "r2d2", "serde_json"] }
 dotenv = "0.15"
 futures = "0.3.5"
 bytes = "0.5.4"
