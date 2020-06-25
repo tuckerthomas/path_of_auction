@@ -1,7 +1,4 @@
 table! {
-    use diesel::sql_types::*;
-    use use crate::models::*;
-
     accounts (id) {
         id -> Int4,
         name -> Varchar,
@@ -10,9 +7,6 @@ table! {
 }
 
 table! {
-    use diesel::sql_types::*;
-    use use crate::models::*;
-
     items (id) {
         id -> Bpchar,
         stash_tab_id -> Bpchar,
@@ -21,9 +15,6 @@ table! {
 }
 
 table! {
-    use diesel::sql_types::*;
-    use use crate::models::*;
-
     stash_tabs (id) {
         id -> Varchar,
         account_id -> Int4,

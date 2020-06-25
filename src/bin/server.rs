@@ -1,5 +1,6 @@
 use bytes::buf::BufExt as _;
 use hyper::Client;
+use dotenv::dotenv;
 
 use path_of_auction::models::*;
 use path_of_auction::threads::*;
@@ -7,26 +8,28 @@ use path_of_auction::*;
 
 use std::error::Error;
 use std::convert::TryInto;
-
-const NTHREADS: u32 = 200;
+use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // Connect to database
-    let db_pool = establish_connection(NTHREADS);
+    dotenv().ok();
 
-    // Start worker pool
-    let work_pool = threads::ThreadPool::new(NTHREADS.try_into().unwrap(), db_pool);
+    let nthreads = env::var("NTHREADS").expect("NTHREADS must be set!").parse::<u32>().expect("NTHREADS must be a number!");
+    println!("Number of worker threads set to {}!", nthreads);
 
-    // TODO: move to arg/class/config/env_var
-    // API Stats https://poe.watch/stats?type=time
     // START OF BLIGHT: 475841770-492541661-464580457-531662984-505125106
     // Last ID left on 25494418-26606951-25417312-25066282-26588786
     // START 2947-5227-4265-5439-1849
     // Delerium 715190373-729521754-696364788-787219679-751860877
-    let inital_id = "730821355-744837821-710455127-803797332-767101094".to_string();
+    let start_id = env::var("START_TAB").expect("START_TAB must be set!");
+    
+    // Connect to database
+    let db_pool = establish_connection(nthreads);
 
-    let pub_stash_tab = get_stash_tabs(inital_id, &work_pool).await?;
+    // Start worker pool
+    let work_pool = threads::ThreadPool::new(nthreads.try_into().unwrap(), db_pool);
+
+    let pub_stash_tab = get_stash_tabs(start_id, &work_pool).await?;
 
     println!("Got first request!");
 
@@ -94,15 +97,15 @@ async fn get_stash_tabs(next_id: String, work_pool: &ThreadPool) -> Result<Publi
     }
 
     // Clear out the work queue for the next requeust
-    while work_pool.get_size() > 200000 {
+    while work_pool.get_size() > 15000 {
         std::thread::sleep(std::time::Duration::from_millis(100));
     }
 
     println!("Processing in {}ms", now.elapsed().as_millis());
     println!("Full Request in {}ms", full_req.elapsed().as_millis());
 
-    if full_req.elapsed().as_millis() < 500 {
-        std::thread::sleep(std::time::Duration::from_millis(((500 - full_req.elapsed().as_millis())).try_into().unwrap()));
+    if full_req.elapsed().as_millis() < 1000 {
+        std::thread::sleep(std::time::Duration::from_millis(((1000 - full_req.elapsed().as_millis())).try_into().unwrap()));
     }
 
     Ok(pub_stash_tab)
