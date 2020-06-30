@@ -47,10 +47,7 @@ async fn get_stash_tabs(next_id: String, work_pool: &ThreadPool) -> Result<Publi
     println!("\nGetting ID: {}", next_id);
 
     // Setup URI
-    // TODO: move to arg/class/config/env_var
-    let public_stash_tab_api_base = "http://api.pathofexile.com/public-stash-tabs";
-    let public_stash_tab_api_full = format!("{}?id={}", public_stash_tab_api_base, next_id);
-    let public_stash_tab_uri = public_stash_tab_api_full.parse().unwrap();
+    let request = PubStashTabRequest::new(next_id.as_str());
 
     // Setup timers for diagnostics
     let full_req = std::time::Instant::now();
@@ -58,7 +55,7 @@ async fn get_stash_tabs(next_id: String, work_pool: &ThreadPool) -> Result<Publi
 
     // Create client for http request
     let client = Client::new();
-    let res = client.get(public_stash_tab_uri).await?;
+    let res = client.request(request).await?;
     println!("Response in {}ms", now.elapsed().as_millis());
 
     // Reset now
@@ -72,7 +69,9 @@ async fn get_stash_tabs(next_id: String, work_pool: &ThreadPool) -> Result<Publi
     now = std::time::Instant::now();
 
     // Deserialize request
-    let pub_stash_tab: PublicStashTabRequest = serde_json::from_reader(body.reader())?;
+    let pub_stash_tab: PublicStashTabRequest = serde_json::from_reader(body.clone().reader())?;
+    let value: serde_json::Value = serde_json::from_reader(body.reader())?;
+    println!("Json?: {}", value);
     println!("Deserialize in {}ms", now.elapsed().as_millis());
 
     // Reset now

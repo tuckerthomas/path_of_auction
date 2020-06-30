@@ -4,6 +4,9 @@ use serde::{Serialize, Deserialize};
 use serde_repr::{Serialize_repr, Deserialize_repr};
 use serde_with::skip_serializing_none;
 
+// Hyper
+use hyper::{Request, Body, Method, Uri};
+
 // Custom composite type creation
 use diesel::*;
 use diesel::serialize::{Output, ToSql};
@@ -11,6 +14,27 @@ use diesel::deserialize::{FromSql};
 use diesel::sql_types::*;
 use diesel::pg::Pg;
 use std::io::Write;
+
+pub enum PubStashTabRequest {
+    PubStashTabUri
+}
+
+impl PubStashTabRequest {
+    pub fn new<'a>(id: &'a str) -> Request<Body> {
+        let id_uri = format!("{}?id={}", PubStashTabRequest::PubStashTabUri.as_str(), id);
+        let trade_uri: Uri = id_uri.parse().unwrap();
+        Request::builder()
+            .method(Method::GET)
+            .uri(trade_uri)
+            .body(Body::empty()).unwrap()
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            &PubStashTabRequest::PubStashTabUri => "http://api.pathofexile.com/public-stash-tabs"
+        }
+    }
+}
 
 #[derive(Deserialize, Debug)]
 pub struct PublicStashTabRequest {
@@ -171,11 +195,41 @@ impl Default for FrameType {
 }
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone, AsExpression, Queryable)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(default)]
 pub struct ItemExtendedData {
-    category: String,
+    category: Option<String>,
     subcategories: Option<Vec<String>>,
     prefixes: Option<i32>,
     suffixes: Option<i32>,
-    base_type: Option<String>
+    base_type: Option<String>,
+    dps: Option<f32>,
+    pdps: Option<f32>,
+    edps: Option<f32>,
+    dps_aug: Option<bool>,
+    edps_aug: Option<bool>,
+    mods: Option<ItemExtendedDataMods>,
+    text: Option<String>
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, Clone, AsExpression, Queryable)]
+#[serde(default, rename_all = "camelCase")]
+pub struct ItemExtendedDataMods {
+    implicit: Vec<ItemExtendedDataModsValues>,
+    explicit:Vec<ItemExtendedDataModsValues>
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, Clone, AsExpression, Queryable)]
+#[serde(default, rename_all = "camelCase")]
+pub struct ItemExtendedDataModsValues {
+    name: String,
+    tier: String,
+    magnitudes: Option<Vec<ItemExtendedDataModsValuesMagnitudes>>
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, Clone, AsExpression, Queryable)]
+#[serde(default, rename_all = "camelCase")]
+pub struct ItemExtendedDataModsValuesMagnitudes {
+    hash: String,
+    min: i32,
+    max: i32
 }
